@@ -39,7 +39,30 @@ module Mina
       erb.result b
     end
 
-    # ### run!
+    # Creates a file on the server with the given content
+    #
+    # put("This is my file", "/tmp/file")
+    #
+    def put(content, file)
+      queue <<-CMD
+      OLDIFS=$IFS
+      IFS='' read -r -d '' MINA_PUT <<"EOF"
+#{content}
+EOF
+      echo "$MINA_PUT" > #{file}
+      IFS=$OLDIFS
+      CMD
+    end
+
+    # Renders a template and uploads it to the server.
+    # Defaults to an ERB template.
+    #
+    # render("templates/my_template.erb", "/tmp/file")
+    #
+    def render(template, out, renderer=method(:erb))
+      put(renderer.call(template), out)
+    end
+
     # SSHs into the host and runs the code that has been queued.
     #
     # This is already automatically invoked before Rake exits to run all
@@ -341,7 +364,7 @@ module Mina
     # Indents a given code block with `count` spaces before it.
 
     def indent(count, str)
-      str.gsub(/^/, " "*count)
+      str.gsub(/^(?!EOF$)/, " "*count)
     end
 
     # ### unindent
